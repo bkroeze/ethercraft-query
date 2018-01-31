@@ -1,0 +1,127 @@
+#! /usr/bin/env node
+/**
+ * etheremonQ
+ *
+ * A simple query tool for etheremon.
+ *
+ * Copyright 2017, Bruce Kroeze <bkroeze@gmail.com>
+ */
+
+var Web3 = require('web3');
+var ERC20 = require('human-standard-token-abi')
+
+var ITEMS = {
+  'gloves': '0xb6bf757e722dd1e7db9fb06e30bcf8f591f94b44'
+};
+
+var EnchantedABI = require('./EnchantedStore');
+
+var oneEth = 1000000000000000000;
+
+const promisify = (inner) =>
+  new Promise((resolve, reject) =>
+    inner((err, res) => {
+      if (err) { reject(err) }
+
+      resolve(res);
+    })
+  );
+
+class Client {
+
+  constructor(params) {
+    this.web3 = new Web3(Web3.givenProvider || new Web3.providers.HttpProvider('https://api.myetherapi.com/eth'));
+    this.enchantedShop = this.web3.eth.contract(EnchantedABI).at(params.contract);
+    this.account = params.account;
+  }
+
+  /**
+   * Gets balance of an item
+   * @param  {string} account [description]
+   * @param  {string} item name
+   * @return {Promise} promise resolving to the balance in wei
+   */
+  getBalance(account, item='gloves') {
+    var tokenAddress = ITEMS[item];
+    if (!tokenAddress) {
+      throw new Error('Bad item', item);
+    }
+    var token = this.web3.eth.contract(ERC20).at(tokenAddress);
+    var rv = {
+      key: item,
+      symbol: null,
+      balance: 0
+    };
+    console.log(Object.keys(token));
+    token.symbol.call((err, symbol) => {
+      if (err) {
+        throw new Error(err);
+      }
+      console.log(symbol);
+      rv.symbol = symbol;
+      token.balanceOf.call(this.account, (err, balance) => {
+        rv.balance = balance / oneEth;
+        console.log('bal: ' + rv.balance);
+        return rv;
+      });
+    });
+  }
+
+  /**
+   * Not complete, need to inspect shop-item js for more details here.
+   * @param  {[type]} account [description]
+   * @return {[type]}         [description]
+   */
+  getItemsOwned(account) {
+    //return this.enchantedShop.methods.itemsOwned(account).call();
+    console.log(Object.keys(this.enchantedShop.methods));
+  }
+}
+
+function balanceCommand (args) {
+  const client = new Client(args);
+  console.log(client.getBalance(args.account));
+    // .then(details => {
+    //   var now = new Date().toLocaleString();
+    //   console.log(`${now}: ${JSON.stringify(details)}`);
+    // });
+}
+
+function itemsOwnedCommand (args) {
+  const client = new Client(args);
+  client.getItemsOwned(args.account)
+    .then(details => {
+      var now = new Date().toLocaleString();
+      console.log(`${now}\n--------\n${JSON.stringify(details)}`);
+    });
+}
+
+function accountOptions (yargs) {
+  return yargs
+    .option('account', {alias: 'a', type: 'string', default: '0xC249736C5e126d604490F22d569F4EC453432902'})
+    .option('contract', {type: 'string', description: "EnchantedShop contract address (override default if given)", default: '0x8c75f62d9b47514c134a8ca0eb40c9518882961d'})
+    .demandOption('account', 'Please provide account');
+}
+
+const USAGE = 'Query Ethercraft account\nUsage: ethercraftQ balance';
+
+var args = require('yargs')
+  .usage(USAGE)
+  .command({
+    command: 'balance',
+    desc: 'Get balance for Ethercraft account',
+    builder: accountOptions,
+    handler: balanceCommand
+  })
+  .command({
+    command: 'inventory',
+    desc: 'Get Inventory',
+    builder: accountOptions,
+    handler: itemsOwnedCommand
+  })
+  .showHelpOnFail(false, 'Specify --help for available options')
+  .demandCommand(1, USAGE + '\n\nI need at least one command, such as "balance"')
+  .help()
+  .parse();
+
+// console.log(args);

@@ -1,0 +1,25 @@
+{
+  "name": "ethercraft-query",
+  "version": "0.0.6",
+  "description": "Queries Ethercraft inventory and sales information",
+  "main": "ethercraftQ.js",
+  "repository": "https://github.com/bkroeze/ethercraftQ",
+  "author": {
+    "name": "Bruce Kroeze",
+    "email": "bkroeze@gmail.com"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "human-standard-token-abi": "^1.0.2",
+    "web3": "^0.20",
+    "yargs": "^11.0.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^3.6.2"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "ethercraftQ.js"
+  ]
+}
